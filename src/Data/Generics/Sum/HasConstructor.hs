@@ -41,18 +41,11 @@ class HasConstructor (con :: Symbol) a s | s con -> a where
 
 -- | Instances are generated on the fly for all records that have the required
 --   field.
---instance
---  ( Generic s
---  -- , Contains field (Rep s) ~ 'Just a -- this is needed for the fundep for some reason
---  , GHasField field (Rep s) a
---  ) => HasField field a s where
---  constructor =  repIso . glabel @field
-
-type family Collect f :: [Type] where
-  Collect (S1 _ (Rec0 t))
-    = '[t]
-  Collect (f :*: g)
-    = Collect f ++ Collect g
+instance
+  ( Generic s
+  , GHasConstructor field (Rep s) a
+  ) => HasConstructor field a s where
+  construct =  repIso . gconstruct @field
 
 data HList (xs :: [Type]) where
   Nil  :: HList '[]
@@ -185,6 +178,7 @@ data T2
 
 -- to (gconstruct @"T2" # (5, "asd")) :: T2
 -- Generics.to (gconstruct @"T8" # (5, 'c', "asd" ,4 ,4)) :: T2
+-- T8 4 'c' "asd" 4 2 ^? construct @"T8" . _3
 
 class Partition xs ys zs | xs ys -> zs, xs zs -> ys where
   partition :: HList zs -> (HList xs, HList ys)
