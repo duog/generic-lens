@@ -27,6 +27,10 @@
 --
 -----------------------------------------------------------------------------
 
+-- TODO: targeting tuples is nice, but we could do better, by exposing an hlist
+-- with named elements, so "HasField" would work on the target structure, and
+-- possibly have an Iso with appropriate records
+
 module Data.Generics.Sum.HasConstructor where
 
 import Data.Generics.Internal.Lens
@@ -37,15 +41,15 @@ import GHC.Generics
 
 -- | Records that have a field with a given name.
 class HasConstructor (con :: Symbol) a s | s con -> a where
-  construct :: Prism' s a
+  is :: Prism' s a
 
 -- | Instances are generated on the fly for all records that have the required
 --   field.
 instance
   ( Generic s
-  , GHasConstructor field (Rep s) a
-  ) => HasConstructor field a s where
-  construct =  repIso . gconstruct @field
+  , GHasConstructor con (Rep s) a
+  ) => HasConstructor con a s where
+  is =  repIso . gconstruct @con
 
 data HList (xs :: [Type]) where
   Nil  :: HList '[]
@@ -105,8 +109,14 @@ tuples (a :> b :> c :> d :> e :> f :> g :> h :> j :> k :> Nil)
 tuples (a :> b :> c :> d :> e :> f :> g :> h :> j :> k :> l :> Nil)
   = (a, b, c, d, e, f, g, h, j, k, l)
 
-class AsList (tup :: *) (xs :: [*]) | tup -> xs, xs -> tup where
+class AsList (tup :: *) (xs :: [*]) | xs -> tup where
   asList :: tup -> HList xs
+
+-- unfortunately this very important instance violates the functional
+-- dependency in the opposite way instance
+instance AsList a '[a] where
+  asList a
+    = (a :> Nil)
 
 instance AsList (a, b) '[a, b] where
   asList (a, b)
@@ -170,15 +180,28 @@ instance GHasConstructor con r a => GHasConstructorSum con l r a 'False where
 instance GHasConstructorSum con l r a (ContainsC con l) => GHasConstructor con (l :+: r) a where
   gconstruct = gconstructSum @con @l @r @a @(ContainsC con l)
 
-data T2
-  = T3 Int String
-  | T2 Int String
-  | T8 Int Char String Int Int
+-- some testing
+data T
+  = T2 Int String
+  | T2' (Int, String)
+  | T5 Int Char String Int Int
+  | T1 Int
   deriving (Show, Generic)
 
--- to (gconstruct @"T2" # (5, "asd")) :: T2
--- Generics.to (gconstruct @"T8" # (5, 'c', "asd" ,4 ,4)) :: T2
--- T8 4 'c' "asd" 4 2 ^? construct @"T8" . _3
+-- to (gconstruct @"T2" # (5, "asd")) :: T
+-- Generics.to (gconstruct @"T5" # (5, 'c', "asd" ,4 ,4)) :: T
+--
+-- acces nested elements
+-- T5 4 'c' "asd" 4 2 ^? construct @"T5" . _3
+-- => Just 2
+--
+-- convert between two constructors:
+-- (is @"T2" #) <$> T2' (4, "hello") ^? is @"T2'" :: Maybe T
+-- => Just (T2 5 "hello")
+--
+-- filter by constructor name:
+-- mapMaybe (^? is @"T2") [T1 3, T2 4 "hello", T2' (4, "asd"), T2 5 "world"]
+-- [(4,"hello"),(5,"world")]
 
 class Partition xs ys zs | xs ys -> zs, xs zs -> ys where
   partition :: HList zs -> (HList xs, HList ys)
