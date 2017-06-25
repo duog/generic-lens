@@ -16,7 +16,7 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      :  Data.Generics.Record.HasField
+-- Module      :  Data.Generics.Sum.HasConstructor
 -- Copyright   :  (C) 2017 Csongor Kiss
 -- License     :  BSD3
 -- Maintainer  :  Csongor Kiss <kiss.csongor.kiss@gmail.com>
@@ -146,12 +146,6 @@ instance AsList (a, b, c, d, e, f, g, h) '[a, b, c, d, e, f, g, h] where
   asList (a, b, c, d, e, f, g, h)
     = (a :> b :> c :> d :> e :> f :> g :> h :> Nil)
 
-data TestProd = Test Int String Char Int
-              deriving (Show, Generic)
-
--- roundtrips
--- to (gto (gfrom (from $ Test 5 "asd" 'c' 4))) :: TestProd
-
 type family ((xs :: [k]) ++ (ys :: [k])) :: [k] where
     '[] ++ ys = ys
     (x ': xs) ++ ys = x ': (xs ++ ys)
@@ -185,14 +179,14 @@ data T
   = T2 Int String
   | T2' (Int, String)
   | T5 Int Char String Int Int
-  | T1 Int
+  | T1 { getT1 :: Int }
   deriving (Show, Generic)
 
 -- to (gconstruct @"T2" # (5, "asd")) :: T
 -- Generics.to (gconstruct @"T5" # (5, 'c', "asd" ,4 ,4)) :: T
 --
 -- acces nested elements
--- T5 4 'c' "asd" 4 2 ^? construct @"T5" . _3
+-- T5 4 'c' "asd" 4 2 ^? is @"T5" . _3
 -- => Just 2
 --
 -- convert between two constructors:
