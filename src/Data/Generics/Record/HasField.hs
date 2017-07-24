@@ -94,7 +94,7 @@ class HasField (field :: Symbol) a s | s field -> a where
 --   field.
 instance
   ( Generic s
-  , Contains field (Rep s) ~ 'Just a -- this is needed for the fundep for some reason
+  , Contains field (Rep s) ~ 'Just a -- this is needed for the fundep
   , GHasField field (Rep s) a
   ) => HasField field a s where
   label =  repIso . glabel @field

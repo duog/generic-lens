@@ -57,9 +57,6 @@ library
   build-depends:     base >= 4.9 && <= 5.0
                    , profunctors >= 5.0 && <= 6.0
 
-                   -- TODO: remove dependency
-                   , lens
-
   -- Directories containing source files.
   hs-source-dirs:    src
 
