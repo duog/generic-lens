@@ -7,7 +7,7 @@ Generically derive lenses and prisms for data types.
 
 Available on [Hackage](https://hackage.haskell.org/package/generic-lens)
 
-This package uses the GHC 8 Generic representation to derive various operations
+This package uses the GHC 8 `Generic` representation to derive various operations
 on data structures with lens interfaces, including structural subtype
 relationships between records and positional indexing into arbitrary product
 types.
@@ -79,7 +79,7 @@ error:
   • The type Polygon does not contain a field at position 10
 ```
 
-Since tuples are an instance of Generic, they also have positional lenses:
+Since tuples are an instance of `Generic`, they also have positional lenses:
 
 ```haskell
 >>> (("hello", True), 5) ^. position @1 . position @2
