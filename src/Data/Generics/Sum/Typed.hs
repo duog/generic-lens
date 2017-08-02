@@ -11,6 +11,8 @@
 {-# LANGUAGE TypeOperators          #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
+{-# LANGUAGE DeriveGeneric   #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Generics.Sum.Typed
@@ -51,7 +53,7 @@ import GHC.TypeLits
 --
 --    data Animal
 --      = Dog Dog
---      | Cat (Name, Age)
+--      | Cat Name Age
 --      | Duck Age
 --      deriving (Generic, Show)
 --
@@ -122,19 +124,20 @@ class GAsType (f :: Type -> Type) a where
   gprojectTyped :: f x -> Either (f x) a
 
 instance
-  ( GCollectible f '[a]
+  ( GCollectible f as
+  , ListTuple a as
   ) => GAsType (M1 C meta f) a where
 
   ginjectTyped
     = M1 . gfromCollection . tupleToList
   gprojectTyped
-    = Right . listToTuple @_ @'[a] . gtoCollection . unM1
+    = Right . listToTuple @_ @as . gtoCollection . unM1
 
-instance GSumAsType l r a (HasPartialTypeP a l) => GAsType (l :+: r) a where
+instance GSumAsType (HasPartialTypeTupleP a l) l r a => GAsType (l :+: r) a where
   ginjectTyped
-    = ginjectSumTyped @l @r @a @(HasPartialTypeP a l)
+    = ginjectSumTyped @(HasPartialTypeTupleP a l) @l @r @a
   gprojectTyped
-    = gprojectSumTyped @l @r @a @(HasPartialTypeP a l)
+    = gprojectSumTyped @(HasPartialTypeTupleP a l) @l @r @a
 
 instance GAsType f a => GAsType (M1 D meta f) a where
   ginjectTyped
@@ -142,20 +145,14 @@ instance GAsType f a => GAsType (M1 D meta f) a where
   gprojectTyped
     = either (Left . M1) Right . gprojectTyped . unM1
 
-instance GAsType f a => GAsType (M1 S meta f) a where
-  ginjectTyped
-    = M1 . ginjectTyped
-  gprojectTyped
-    = either (Left . M1) Right . gprojectTyped . unM1
-
-class GSumAsType l r a (contains :: Bool) where
+class GSumAsType (contains :: Bool) l r a where
   _GSumTyped :: Prism' ((l :+: r) x) a
-  _GSumTyped = prism (ginjectSumTyped @_ @_ @_ @contains) (gprojectSumTyped @_ @_ @_ @contains)
+  _GSumTyped = prism (ginjectSumTyped  @contains) (gprojectSumTyped @contains)
 
   ginjectSumTyped  :: a -> (l :+: r) x
   gprojectSumTyped :: (l :+: r) x -> Either ((l :+: r) x) a
 
-instance GAsType l a => GSumAsType l r a 'True where
+instance GAsType l a => GSumAsType 'True l r a where
   ginjectSumTyped
     = L1 . ginjectTyped
   gprojectSumTyped
@@ -163,7 +160,7 @@ instance GAsType l a => GSumAsType l r a 'True where
         L1 l -> either (Left . L1) Right (gprojectTyped l)
         R1 _ -> Left x
 
-instance GAsType r a => GSumAsType l r a 'False where
+instance GAsType r a => GSumAsType 'False l r a where
   ginjectSumTyped
     = R1 . ginjectTyped
   gprojectSumTyped
