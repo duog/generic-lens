@@ -116,27 +116,57 @@ type family ErrorUnlessOne (a :: Type) (s :: Type) (count :: Count) :: Constrain
 -- |As 'AsType' but over generic representations as defined by "GHC.Generics".
 class GAsType (f :: Type -> Type) a where
   _GTyped :: Prism' (f x) a
+  _GTyped = prism ginjectTyped gprojectTyped
+
+  ginjectTyped  :: a -> f x
+  gprojectTyped :: f x -> Either (f x) a
 
 instance
   ( GCollectible f '[a]
   ) => GAsType (M1 C meta f) a where
 
-  _GTyped = prism (M1 . gfromCollection . tupleToList) (Right . listToTuple @_ @'[a] . gtoCollection . unM1)
+  ginjectTyped
+    = M1 . gfromCollection . tupleToList
+  gprojectTyped
+    = Right . listToTuple @_ @'[a] . gtoCollection . unM1
 
 instance GSumAsType l r a (HasPartialTypeP a l) => GAsType (l :+: r) a where
-  _GTyped = _GSumTyped @l @r @a @(HasPartialTypeP a l)
+  ginjectTyped
+    = ginjectSumTyped @l @r @a @(HasPartialTypeP a l)
+  gprojectTyped
+    = gprojectSumTyped @l @r @a @(HasPartialTypeP a l)
 
 instance GAsType f a => GAsType (M1 D meta f) a where
-  _GTyped = mIso . _GTyped
+  ginjectTyped
+    = M1 . ginjectTyped
+  gprojectTyped
+    = either (Left . M1) Right . gprojectTyped . unM1
 
 instance GAsType f a => GAsType (M1 S meta f) a where
-  _GTyped = mIso . _GTyped
+  ginjectTyped
+    = M1 . ginjectTyped
+  gprojectTyped
+    = either (Left . M1) Right . gprojectTyped . unM1
 
 class GSumAsType l r a (contains :: Bool) where
   _GSumTyped :: Prism' ((l :+: r) x) a
+  _GSumTyped = prism (ginjectSumTyped @_ @_ @_ @contains) (gprojectSumTyped @_ @_ @_ @contains)
+
+  ginjectSumTyped  :: a -> (l :+: r) x
+  gprojectSumTyped :: (l :+: r) x -> Either ((l :+: r) x) a
 
 instance GAsType l a => GSumAsType l r a 'True where
-  _GSumTyped = left . _GTyped
+  ginjectSumTyped
+    = L1 . ginjectTyped
+  gprojectSumTyped
+    = \x -> case x of
+        L1 l -> either (Left . L1) Right (gprojectTyped l)
+        R1 _ -> Left x
 
 instance GAsType r a => GSumAsType l r a 'False where
-  _GSumTyped = right . _GTyped
+  ginjectSumTyped
+    = R1 . ginjectTyped
+  gprojectSumTyped
+    = \x -> case x of
+        R1 r -> either (Left . R1) Right (gprojectTyped r)
+        L1 _ -> Left x

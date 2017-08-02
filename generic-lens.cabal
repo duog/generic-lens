@@ -27,6 +27,7 @@ library
                     , Data.Generics.Sum
                     , Data.Generics.Sum.Any
                     , Data.Generics.Sum.Constructors
+                    , Data.Generics.Sum.Subtype
                     , Data.Generics.Sum.Typed
 
                     , Data.Generics.Internal.Lens
