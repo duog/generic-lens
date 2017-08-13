@@ -31,6 +31,9 @@ type Prism' s a
 type Iso' s a
   = forall p f. (Profunctor p, Functor f) => p a (f a) -> p s (f s)
 
+type Traversal' s a
+  = forall f. Applicative f => (a -> f a) -> s -> f s
+
 -- | Getting
 (^.) :: s -> ((a -> Const a a) -> s -> Const a s) -> a
 s ^. l = getConst (l Const s)

@@ -95,3 +95,12 @@ type family HasCtorP (ctor :: Symbol) f :: Bool where
     = HasCtorP ctor f
   HasCtorP ctor _
     = 'False
+
+-- This might be helpful for implementing Isos
+type family HasOneConstructorWithOneFieldP a f :: Bool where
+  HasOneConstructorWithOneFieldP t (K1 _ _) = 'True
+  HasOneConstructorWithOneFieldP t V1 = 'False
+  HasOneConstructorWithOneFieldP t U1 = 'False
+  HasOneConstructorWithOneFieldP t (l :+: r) = 'False
+  HasOneConstructorWithOneFieldP t (l :*: r) = 'False
+  HasOneConstructorWithOneFieldP t (M1 i c f) = HasOneConstructorWithOneFieldP t f
